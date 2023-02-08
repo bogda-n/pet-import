@@ -3,13 +3,12 @@ const FormData = require('form-data')
 
 /**
  * @description - login in pet
- * @returns {Promise<CancelToken>}
  */
 module.exports.loginPet = async function () {
   const loginPetUrl = 'https://pet.icecat.biz/api/auth/login'
   const data = {
-    name: pet-login,
-    password: pet-password
+    name: process.env.PET_LOGIN,
+    password: process.env.PET_PASSWORD
   }
   const getResponse = await axios.post(loginPetUrl, data)
   return getResponse.data.token
@@ -23,7 +22,7 @@ module.exports.changeStatus = async function (asset, token, status) {
     headers: {
       Authorization: `Bearer ${token}`
     },
-    data: { status: status }
+    data: {status: status}
   })
 }
 
@@ -71,65 +70,100 @@ module.exports.getPetLanguageId = async function (token, lang) {
     url: 'https://pet.icecat.biz/api/languages',
     params: {
       sort: 'icecat_id',
-      order: 'asc'
+      order: 'asc',
+      limit: '0'
     },
     headers: {
       Authorization: `Bearer ${token}`
     }
   })
   const languageObject = getPetLanguages.data.langs.find(petLang => {
-    if (petLang.short_code.toLowerCase() === lang.toLowerCase() || petLang.code.toLowerCase() === lang.toLowerCase()) {
+    // if (petLang.short_code.toLowerCase() === lang.toLowerCase() || petLang.code.toLowerCase() === lang.toLowerCase()) {
+    if (petLang.short_code.toLowerCase() === lang.toLowerCase()) {
       return petLang
     }
   })
   return languageObject.id
 }
 
-
 /**
- * @description - search asset by name brand and language
- * @param brand
- * @param name
- * @param langId
+ * @description - get pet Brand Id
  * @param token
- * @returns {Promise<void>}
+ * @param brandName
  */
-module.exports.searchAsset = async function (brand, name, langId, token) {
-  const assetsByNameAndBrand = await axios({
+module.exports.getPetBrandId = async function (token, brandName) {
+  const getPetBrands = await axios({
     method: 'get',
-    url: 'https://pet.icecat.biz/api/assets',
+    url: 'https://pet.icecat.biz/api/brands/search',
     params: {
-      name,
-      brand,
-      lang: langId,
-      page: '1',
-      limit: '25'
+      name: brandName
     },
     headers: {
       Authorization: `Bearer ${token}`
     }
   })
-  if (assetsByNameAndBrand.data) {
-    const assetObject = assetsByNameAndBrand.data.assets.find(asset => {
-      return asset
+
+  const brandObject = getPetBrands.data.find(petBrand => {
+    if (petBrand.name.trim().toLowerCase() === brandName.toLowerCase()) {
+      return petBrand
+    }
+  })
+
+  return brandObject.id
+}
+
+
+/**
+ * @description - search asset by brand, mpn, name, owner and language
+ * @param brandId
+ * @param mpn
+ * @param name
+ * @param langId
+ * @param token
+ */
+module.exports.searchAsset = async function (brandId, mpn, name, langId, token) {
+  const getAssetsByOwnerBrandAndLang = await axios({
+    method: 'get',
+    url: 'https://pet.icecat.biz/api/assets',
+    params: {
+      brand: brandId,
+      mpn,
+      lang: langId,
+      owner: process.env.OWNER_ID,
+      page: '1',
+      limit: '25',
+    },
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  })
+  if (getAssetsByOwnerBrandAndLang.data) {
+    //Todo Filter asset by Name ? approve premium if have standard???
+    const assetObject = getAssetsByOwnerBrandAndLang.data.assets.find(asset => {
+      if (asset.name.toLowerCase().includes('premium') && name.toLowerCase().includes('premium')) {
+        return asset
+      }
+      if (asset.name.toLowerCase().includes('standard') && name.toLowerCase().includes('standard')) {
+        return asset
+      }
     })
     return assetObject
   }
 }
 
 module.exports.assetBrand = async function (brand, petToken) {
-  const assetBrandRequest = await axios({
-    method: 'post',
-    url: 'https://pet.icecat.biz/api/icecat/brand',
-    data: {
-      query: brand
+  const getPetBrands = await axios({
+    method: 'get',
+    url: 'https://pet.icecat.biz/api/brands/search',
+    params: {
+      name: brand
     },
     headers: {
       Authorization: `Bearer ${petToken}`
     }
   })
-  const brandObject = assetBrandRequest.data.find(brandItem => {
-    if (brandItem.Name.replace('+', ' ').trim().toLowerCase() === brand.toLowerCase()) {
+  const brandObject = getPetBrands.data.find(brandItem => {
+    if (brandItem.name.trim().toLowerCase() === brand.toLowerCase()) {
       return brand
     }
   })
@@ -160,25 +194,40 @@ module.exports.assetCategory = async function (productId, petToken) {
       Authorization: `Bearer ${petToken}`
     }
   })
-  return productRequest.data.Category
+
+  const icecatCategory = productRequest.data.Category
+
+  const getCategories = await axios({
+    method: 'get',
+    url: `https://pet.icecat.biz/api/categories/search`,
+    params: {
+      name: icecatCategory.CategoryName
+    },
+    headers: {
+      Authorization: `Bearer ${petToken}`
+    }
+  })
+
+  const petCategory = getCategories.data.find(category => {
+    if (category.icecatId === +icecatCategory.CategoryId) {
+      return category
+    }
+  })
+
+  return petCategory
 }
 
 module.exports.createAsset = async function (productName, productData, petToken) {
   const assetLink = productData['link']
   const assetLangId = await this.getPetLanguageId(petToken, productData.lang)
   const brandObject = await this.assetBrand(productData.brand, petToken)
+
   if (brandObject) {
-    const assetSkuObject = await this.assetMpn(brandObject.BrandId, productData.mpn, petToken)
+    const assetSkuObject = await this.assetMpn(brandObject.icecatId, productData.mpn.toUpperCase(), petToken)
     const assetCategoryObject = await this.assetCategory(assetSkuObject[0].ProductId, petToken)
     const newAssetData = {
-      'brand': {
-        'name': brandObject.Name,
-        'id': brandObject.BrandId
-      },
-      'category': {
-        'name': assetCategoryObject.CategoryName,
-        'id': assetCategoryObject.CategoryId
-      },
+      'brand': brandObject.id,
+      'category': assetCategoryObject.id,
       'lang': assetLangId,
       'link': assetLink,
       'name': productName,
@@ -202,7 +251,7 @@ module.exports.createAsset = async function (productName, productData, petToken)
 
 }
 
-module.exports.createStory = async function (assetId, petToken) {
+module.exports.createStoryV2 = async function (assetId, petToken) {
   const data = new FormData()
   data.append('type', 'Product story v2')
   data.append('source', 'constructor')
@@ -215,21 +264,19 @@ module.exports.createStory = async function (assetId, petToken) {
     }
   })
   return storyCreateRequest.data.story.id
-
-
 }
+
+
 
 module.exports.setLayout = async function (storyId, layoutId, petToken) {
   const setLayotRequest = await axios({
     method: 'patch',
     url: `https://pet.icecat.biz/api/stories/${storyId}`,
-    data: { layout: layoutId },
+    data: {layout: layoutId},
     headers: {
       Authorization: `Bearer ${petToken}`
     }
   })
-
-
 }
 
 module.exports.getLayoutComponents = async function (layoutId, petToken) {
@@ -260,12 +307,12 @@ module.exports.setComponentsToStory = async function (storyId, storyComponentPar
         }
       })
       const componentData = {
-        data: importComponent.data,
+        // data: importComponent.data,
+        data: layoutComponent.data,
         name: layoutComponent.name,
         parent: layoutComponent.id,
         template: layoutComponent.template
       }
-
       const addStoryComponent = await axios({
         method: 'post',
         url: `https://pet.icecat.biz/api/stories/${storyId}/components`,
@@ -275,8 +322,21 @@ module.exports.setComponentsToStory = async function (storyId, storyComponentPar
         }
       })
 
+      // console.log('importComponent.data', importComponent.data)
+
+      const patchData = {
+        data: importComponent.data,
+        template: layoutComponent.template
+      }
+
+      const addDataToComponent = await axios({
+        method: 'patch',
+        url: `https://pet.icecat.biz/api/stories/components/${addStoryComponent.data.id}`,
+        data: patchData,
+        headers: {
+          Authorization: `Bearer ${petToken}`
+        }
+      })
     }
   }
-
-
 }

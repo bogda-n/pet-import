@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 const petService = require('./modules/petService')
 const readInput = require('./modules/readInput')
 const queueModule = require('./modules/queue')
@@ -11,7 +13,9 @@ const resultPath = path.resolve(__dirname, 'result')
 async function main(productName, productData, petToken) {
   try {
     const petLangId = await petService.getPetLanguageId(petToken, productData.lang)
-    const searchedAsset = await petService.searchAsset(productData.brand, productName, petLangId, petToken)
+    const petBrandId = await petService.getPetBrandId(petToken, productData.brand)
+
+    const searchedAsset = await petService.searchAsset(petBrandId, productData.mpn.toUpperCase(), productName, petLangId, petToken)
     if (searchedAsset) {
       await petService.removeStory(searchedAsset, petToken)
       await createStory(searchedAsset, productData, petToken)
@@ -20,6 +24,7 @@ async function main(productName, productData, petToken) {
       await createStory(newAsset, productData, petToken)
     }
   } catch (e) {
+    // console.error(e.data?.errors)
     console.error(e)
     const reportData = {
       SKU: productData.mpn,
@@ -34,10 +39,11 @@ async function main(productName, productData, petToken) {
 }
 
 async function createStory(asset, productData, petToken) {
-  const storyId = await petService.createStory(asset.id, petToken)
+  const storyId = await petService.createStoryV2(asset.id, petToken)
   await petService.setLayout(storyId, productData.layoutId, petToken)
+
   await petService.setComponentsToStory(storyId, productData.components, productData.layoutId, petToken)
-  await petService.changeStatus(asset, petToken, 'Approved')
+  await petService.changeStatus(asset, petToken, 'Approved') //TODO Status under appr
   const reportData = {
     SKU: productData.mpn,
     Language: productData.lang,
