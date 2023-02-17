@@ -29,8 +29,9 @@ async function main(productName, productData, petToken) {
     const reportData = {
       SKU: productData.mpn,
       Language: productData.lang,
+      Status: 'Error',
       StatusCode: e.statusCode,
-      StatusText: e.statusText
+      StatusText: e.statusText,
     }
     processedProducts.push(reportData)
   } finally {
@@ -43,12 +44,13 @@ async function createStory(asset, productData, petToken) {
   await petService.setLayout(storyId, productData.layoutId, petToken)
 
   await petService.setComponentsToStory(storyId, productData.components, productData.layoutId, petToken)
-  await petService.changeStatus(asset, petToken, 'Approved') //TODO Status under appr
+  await petService.changeStatus(asset, petToken, 'Under approval') //TODO Status under approval
   const reportData = {
     SKU: productData.mpn,
     Language: productData.lang,
     AssetUrl: `https://pet.icecat.biz/assets/update/${asset.id}`,
-    Preview: `https://pet.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.lang}&productId=${asset.mpns[0].id}`,
+    'Story Preview': `https://pet.icecat.biz/api/stories/preview/${storyId}`,
+    'Icecat Preview': `https://pet.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.lang}&productId=${asset.mpns[0].id}`,
     Status: 'Imported'
   }
   processedProducts.push(reportData)
@@ -65,11 +67,22 @@ async function writeResult() {
 
 async function start() {
   try {
-    const productsJson = readInput.readJson()
+
     const queue = queueModule.queueSettings()
     const petToken = await petService.loginPet()
-    for (const productName in productsJson) {
-      queue.add(() => main(productName, productsJson[productName], petToken))
+    // const productsJson = readInput.readJson()
+    // for (const productName in productsJson) {
+    //   queue.add(() => main(productName, productsJson[productName], petToken))
+    // }
+
+    const directoryPath = path.join(__dirname, 'input')
+    const files = await fs.readdir(directoryPath)
+
+    for (const file of files) {
+      if (path.extname(file) === '.json') {
+        const data = await fs.readJson(path.join(directoryPath, file))
+        queue.add(() => main(data['assetName'], data, petToken))
+      }
     }
   } catch (e) {
     console.error(e)
