@@ -18,10 +18,10 @@ async function main(productName, productData, petToken) {
     const searchedAsset = await petService.searchAsset(petBrandId, productData.mpn.toUpperCase(), productName, petLangId, petToken)
     if (searchedAsset) {
       await petService.removeStory(searchedAsset, petToken)
-      await createStory(searchedAsset, productData, petToken)
+      await createStory(searchedAsset, productData, petToken, productName)
     } else {
       const newAsset = await petService.createAsset(productName, productData, petToken)
-      await createStory(newAsset, productData, petToken)
+      await createStory(newAsset, productData, petToken, productName)
     }
   } catch (e) {
     // console.error(e.data?.errors)
@@ -32,6 +32,7 @@ async function main(productName, productData, petToken) {
       Status: 'Error',
       StatusCode: e.statusCode,
       StatusText: e.statusText,
+      typeOfStory: productName.toLowerCase().trim().includes('premium') ? 'Premium' : 'Standard'
     }
     processedProducts.push(reportData)
   } finally {
@@ -39,7 +40,9 @@ async function main(productName, productData, petToken) {
   }
 }
 
-async function createStory(asset, productData, petToken) {
+async function createStory(asset, productData, petToken, productName) {
+  const typeOfStory = productName.toLowerCase().trim().includes('premium') ? 'Premium' : 'Standard'
+
   const storyId = await petService.createStoryV2(asset.id, petToken)
   await petService.setLayout(storyId, productData.layoutId, petToken)
 
@@ -47,10 +50,11 @@ async function createStory(asset, productData, petToken) {
   await petService.changeStatus(asset, petToken, 'Under approval') //TODO Status under approval
   const reportData = {
     SKU: productData.mpn,
+    typeOfStory: typeOfStory,
     Language: productData.lang,
     AssetUrl: `https://pet.icecat.biz/assets/update/${asset.id}`,
     'Story Preview': `https://pet.icecat.biz/api/stories/preview/${storyId}`,
-    'Icecat Preview': `https://pet.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.lang}&productId=${asset.mpns[0].id}`,
+    // 'Icecat Preview': `https://pet.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.lang}&productId=${asset.mpns[0].id}`,
     Status: 'Imported'
   }
   processedProducts.push(reportData)
