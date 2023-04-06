@@ -32,30 +32,21 @@ module.exports.changeStatus = async function (asset, token, status) {
  * @returns {Promise<string>}
  */
 
-module.exports.removeStory = async function (asset, token) {
+module.exports.removeStory = async function (asset, typeOfStory, token) {
   await this.changeStatus(asset, token, 'In progress')
-  if (asset.objects.length) {
-    const mmoObjects = await axios({
-      method: 'get',
-      url: `https://pet.icecat.biz/api/assets/${asset.id}/objects`,
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-    if (mmoObjects.data.length) {
-      for (const assetMMOObject of mmoObjects.data) {
-        if (assetMMOObject.type === 'Product story v2') {
-          await axios({
-            method: 'delete',
-            url: `https://pet.icecat.biz/api/assets/${asset.id}/objects/${assetMMOObject.id}`,
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          })
+
+  for (const object of asset.objects) {
+    if ((object.type === 'Product story v2' && object.story.tag === typeOfStory) || object.type === 'Product story') {
+      await axios({
+        method: 'delete',
+        url: `https://pet.icecat.biz/api/assets/${asset.id}/objects/${object.id}`,
+        headers: {
+          Authorization: `Bearer ${token}`
         }
-      }
+      })
     }
   }
+
 }
 
 /**
@@ -121,34 +112,76 @@ module.exports.getPetBrandId = async function (token, brandName) {
  * @param langId
  * @param token
  */
-module.exports.searchAsset = async function (brandId, mpn, name, langId, token) {
-  const getAssetsByOwnerBrandAndLang = await axios({
+module.exports.getOrCreateAsset = async function (brandId, productData, name, langId, token) {
+  const getAssetsByBrandAndLang = await axios({
     method: 'get',
     url: 'https://pet.icecat.biz/api/assets',
     params: {
       brand: brandId,
-      mpn,
-      lang: langId,
-      owner: process.env.OWNER_ID,
-      page: '1',
-      limit: '25',
+      mpn: productData.mpn.toUpperCase(),
+      lang: langId
     },
     headers: {
       Authorization: `Bearer ${token}`
     }
   })
-  if (getAssetsByOwnerBrandAndLang.data) {
-    //Todo Filter asset by Name ? approve premium if have standard???
-    const assetObject = getAssetsByOwnerBrandAndLang.data.assets.find(asset => {
-      if (asset.name.toLowerCase().includes('premium') && name.toLowerCase().includes('premium')) {
-        return asset
+
+  // Return exist asset
+  if (getAssetsByBrandAndLang.data.count >= 1) {
+    const assets = await Promise.all(getAssetsByBrandAndLang.data.assets.map(async (asset) => {
+        const {data} = await axios({
+          method: 'get',
+          url: 'https://pet.icecat.biz/api/assets/' + asset.id,
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+        return data
+      })
+    )
+
+    function assetPriority(asset) {
+      const hasPremium = asset.objects.some(o => o.story.tag === 'Premium' && o.type === 'Product story v2')
+      const hasStandard = asset.objects.some(o => o.story.tag === 'Standard' && o.type === 'Product story v2')
+
+      switch (true) {
+        case hasPremium && hasStandard: {
+          return 2
+        }
+        case hasPremium && !hasStandard: {
+          return 1
+        }
+        case !hasPremium && hasStandard: {
+          return 0
+        }
+        default:
+          return -1
       }
-      if (asset.name.toLowerCase().includes('standard') && name.toLowerCase().includes('standard')) {
-        return asset
-      }
+    }
+
+
+    const sortedAssets = assets.sort((a, b) => {
+      return assetPriority(a) - assetPriority(b)
     })
-    return assetObject
+
+    const asset = sortedAssets.pop()
+
+    await Promise.all(sortedAssets.map(asset => {
+      return axios({
+        method: 'delete',
+        url: 'https://pet.icecat.biz/api/assets/' + asset.id,
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+    }))
+    return asset
   }
+
+  // Create new asset if not found
+  // return this.createAsset(name, productData, token)
+
+  return this.createAsset(productData.title, productData, token)
 }
 
 module.exports.assetBrand = async function (brand, petToken) {
@@ -251,10 +284,12 @@ module.exports.createAsset = async function (productName, productData, petToken)
 
 }
 
-module.exports.createStoryV2 = async function (assetId, petToken) {
+module.exports.createStoryV2 = async function (assetId, typeOfStory, petToken) {
   const data = new FormData()
   data.append('type', 'Product story v2')
   data.append('source', 'constructor')
+  data.append('tag', typeOfStory)
+
   const storyCreateRequest = await axios({
     method: 'post',
     url: `https://pet.icecat.biz/api/assets/${assetId}/objects`,
@@ -265,7 +300,6 @@ module.exports.createStoryV2 = async function (assetId, petToken) {
   })
   return storyCreateRequest.data.story.id
 }
-
 
 
 module.exports.setLayout = async function (storyId, layoutId, petToken) {

@@ -11,20 +11,19 @@ const processedProducts = []
 const resultPath = path.resolve(__dirname, 'result')
 
 async function main(productName, productData, petToken) {
+  const typeOfStory = /premium/i.test(productName) ? 'Premium' : 'Standard'
+
   try {
     const petLangId = await petService.getPetLanguageId(petToken, productData.lang)
     const petBrandId = await petService.getPetBrandId(petToken, productData.brand)
 
-    const searchedAsset = await petService.searchAsset(petBrandId, productData.mpn.toUpperCase(), productName, petLangId, petToken)
-    if (searchedAsset) {
-      await petService.removeStory(searchedAsset, petToken)
-      await createStory(searchedAsset, productData, petToken, productName)
-    } else {
-      const newAsset = await petService.createAsset(productName, productData, petToken)
-      await createStory(newAsset, productData, petToken, productName)
-    }
+    const asset = await petService.getOrCreateAsset(petBrandId, productData, productName, petLangId, petToken)
+
+    await petService.removeStory(asset, typeOfStory , petToken)
+    await createStory(asset, productData, petToken, typeOfStory)
+
   } catch (e) {
-    // console.error(e.data?.errors)
+    console.error('message?:', e?.response.data.errors)
     console.error(e)
     const reportData = {
       SKU: productData.mpn,
@@ -32,7 +31,7 @@ async function main(productName, productData, petToken) {
       Status: 'Error',
       StatusCode: e.statusCode,
       StatusText: e.statusText,
-      typeOfStory: productName.toLowerCase().trim().includes('premium') ? 'Premium' : 'Standard'
+      typeOfStory
     }
     processedProducts.push(reportData)
   } finally {
@@ -40,14 +39,14 @@ async function main(productName, productData, petToken) {
   }
 }
 
-async function createStory(asset, productData, petToken, productName) {
-  const typeOfStory = productName.toLowerCase().trim().includes('premium') ? 'Premium' : 'Standard'
+async function createStory(asset, productData, petToken, typeOfStory) {
 
-  const storyId = await petService.createStoryV2(asset.id, petToken)
+  const storyId = await petService.createStoryV2(asset.id, typeOfStory, petToken)
   await petService.setLayout(storyId, productData.layoutId, petToken)
 
   await petService.setComponentsToStory(storyId, productData.components, productData.layoutId, petToken)
   await petService.changeStatus(asset, petToken, 'Under approval') //TODO Status under approval
+
   const reportData = {
     SKU: productData.mpn,
     typeOfStory: typeOfStory,
@@ -64,8 +63,8 @@ async function writeResult() {
   await fs.ensureDir(resultPath)
   const workBook = xlsx.utils.book_new()
   const workSheet = xlsx.utils.json_to_sheet(processedProducts)
-  xlsx.utils.book_append_sheet(workBook, workSheet, 'result')
-  xlsx.writeFile(workBook, `${resultPath}/result.xlsx`)
+  xlsx.utils.book_append_sheet(workBook, workSheet, 'report')
+  xlsx.writeFile(workBook, `${resultPath}/report.xlsx`)
   console.log('report is created')
 }
 
