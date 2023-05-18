@@ -23,8 +23,8 @@ async function main(productName, productData, petToken) {
     await createStory(asset, productData, petToken, typeOfStory)
 
   } catch (e) {
-    console.error('message?:', e?.response.data.errors)
     console.error(e)
+    console.error('Error', e.response?.data)
     const reportData = {
       SKU: productData.mpn,
       Language: productData.lang,
@@ -53,7 +53,8 @@ async function createStory(asset, productData, petToken, typeOfStory) {
     Language: productData.lang,
     AssetUrl: `https://pet.icecat.biz/assets/update/${asset.id}`,
     'Story Preview': `https://pet.icecat.biz/api/stories/preview/${storyId}`,
-    // 'Icecat Preview': `https://pet.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.lang}&productId=${asset.mpns[0].id}`,
+    'Live Preview': `https://pet.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.lang?.id || asset.lang}&productId=${asset.mpns[0].id}`,
+    // 'Live Preview': `https://pet.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.lang}&productId=${asset.mpns[0].id}`,
     Status: 'Imported'
   }
   processedProducts.push(reportData)

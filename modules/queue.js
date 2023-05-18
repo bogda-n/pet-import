@@ -1,7 +1,7 @@
 const { default: PQueue } = require("p-queue")
 
 module.exports.queueSettings = function () {
-  const queue = new PQueue({ concurrency: 10 })
+  const queue = new PQueue({ concurrency: 5 })
   queue.on('add', () => {
     console.log(`Task is added.  Size: ${queue.size}  Pending: ${queue.pending}`)
   })

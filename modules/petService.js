@@ -33,7 +33,7 @@ module.exports.changeStatus = async function (asset, token, status) {
  */
 
 module.exports.removeStory = async function (asset, typeOfStory, token) {
-  await this.changeStatus(asset, token, 'In progress')
+  await this.changeStatus(asset, token, 'Under approval')
 
   for (const object of asset.objects) {
     if ((object.type === 'Product story v2' && object.story.tag === typeOfStory) || object.type === 'Product story') {
@@ -263,7 +263,7 @@ module.exports.createAsset = async function (productName, productData, petToken)
       'category': assetCategoryObject.id,
       'lang': assetLangId,
       'link': assetLink,
-      'name': productName,
+      'name': `${productName} ${productData.mpn.toUpperCase()}`,
       'mpns': [
         {
           'product': productData.mpn,
