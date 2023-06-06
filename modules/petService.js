@@ -49,7 +49,7 @@ module.exports.removeStory = async function (asset, typeOfStory, token) {
 
 }
 
-/**
+/*
  * @description - get all pet languages
  * @param token
  * @param lang
@@ -263,7 +263,7 @@ module.exports.createAsset = async function (productName, productData, petToken)
       'category': assetCategoryObject.id,
       'lang': assetLangId,
       'link': assetLink,
-      'name': `${productName} ${productData.mpn.toUpperCase()}`,
+      'name': `${productName} ${productData.mpn.toUpperCase()}`.trim(),
       'mpns': [
         {
           'product': productData.mpn,
@@ -324,17 +324,25 @@ module.exports.getLayoutComponents = async function (layoutId, petToken) {
 }
 
 module.exports.setComponentsToStory = async function (storyId, storyComponentParents, layoutId, petToken) {
-  const sortedKeys = Object.keys(storyComponentParents).sort()
+  const sortedKeys = Object.keys(storyComponentParents).sort((a, b) => {
+    const componentA = Number(a.split("_")[1])
+    const componentB = Number(b.split("_")[1])
+
+    return componentA - componentB
+  })
   for (const key of sortedKeys) {
-    const importComponent = storyComponentParents[key]
+    const importComponent = JSON.parse(JSON.stringify(storyComponentParents[key]))
+    delete importComponent.customTemplate
+
     if (importComponent.petStoryComponentId) {
       const allComponentsRequest = await axios({
         method: 'get',
-        url: `https://pet.icecat.biz/api/components?layout=${layoutId}`,
+          url: `https://pet.icecat.biz/api/components?layout=${layoutId}&limit=0`,
         headers: {
           Authorization: `Bearer ${petToken}`
         }
       })
+
       const layoutComponent = allComponentsRequest.data.components.find(comp => {
         if (comp.id === importComponent.petStoryComponentId) {
           return comp
@@ -355,12 +363,17 @@ module.exports.setComponentsToStory = async function (storyId, storyComponentPar
           Authorization: `Bearer ${petToken}`
         }
       })
-
-      // console.log('importComponent.data', importComponent.data)
-
+      // logic for custom components settings
+      let template
+      if(storyComponentParents[key].customTemplate) {
+        template = storyComponentParents[key].customTemplate
+      } else {
+        template = layoutComponent.template
+      }
+      //
       const patchData = {
         data: importComponent.data,
-        template: layoutComponent.template
+        template
       }
 
       const addDataToComponent = await axios({

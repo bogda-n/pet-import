@@ -16,7 +16,6 @@ async function main(productName, productData, petToken) {
   try {
     const petLangId = await petService.getPetLanguageId(petToken, productData.lang)
     const petBrandId = await petService.getPetBrandId(petToken, productData.brand)
-
     const asset = await petService.getOrCreateAsset(petBrandId, productData, productName, petLangId, petToken)
 
     await petService.removeStory(asset, typeOfStory , petToken)
@@ -43,7 +42,6 @@ async function createStory(asset, productData, petToken, typeOfStory) {
 
   const storyId = await petService.createStoryV2(asset.id, typeOfStory, petToken)
   await petService.setLayout(storyId, productData.layoutId, petToken)
-
   await petService.setComponentsToStory(storyId, productData.components, productData.layoutId, petToken)
   await petService.changeStatus(asset, petToken, 'Under approval') //TODO Status under approval
 
@@ -55,6 +53,7 @@ async function createStory(asset, productData, petToken, typeOfStory) {
     'Story Preview': `https://pet.icecat.biz/api/stories/preview/${storyId}`,
     'Live Preview': `https://pet.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.lang?.id || asset.lang}&productId=${asset.mpns[0].id}`,
     // 'Live Preview': `https://pet.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.lang}&productId=${asset.mpns[0].id}`,
+    'BrandURL': `https://pet.icecat.biz/assets?id=${asset.id}`,
     Status: 'Imported'
   }
   processedProducts.push(reportData)
