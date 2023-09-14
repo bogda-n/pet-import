@@ -5,13 +5,14 @@ const FormData = require('form-data')
  * @description - login in pet
  */
 module.exports.loginPet = async function () {
-  const loginPetUrl = 'https://pet.icecat.biz/api/auth/login'
+  const loginPetUrl = 'https://pet.icecat.biz/api/v2/auth/login'
   const data = {
-    name: process.env.PET_LOGIN,
+    username: process.env.PET_LOGIN,
     password: process.env.PET_PASSWORD
   }
   const getResponse = await axios.post(loginPetUrl, data)
-  return getResponse.data.token
+
+  return getResponse.data.accessToken
 }
 
 
