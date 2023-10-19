@@ -59,17 +59,17 @@ module.exports.removeStory = async function (asset, typeOfStory, token) {
 module.exports.getPetLanguageId = async function (token, lang) {
   const getPetLanguages = await axios({
     method: 'get',
-    url: 'https://pet.icecat.biz/api/languages',
+    url: 'https://pet.icecat.biz/api/v2/langs',
     params: {
-      sort: 'icecat_id',
-      order: 'asc',
+      sortBy: 'icecat_id',
+      order: '1',
       limit: '0'
     },
     headers: {
       Authorization: `Bearer ${token}`
     }
   })
-  const languageObject = getPetLanguages.data.langs.find(petLang => {
+  const languageObject = getPetLanguages.data.items.find(petLang => {
     // if (petLang.short_code.toLowerCase() === lang.toLowerCase() || petLang.code.toLowerCase() === lang.toLowerCase()) {
     if (petLang.short_code.toLowerCase() === lang.toLowerCase()) {
       return petLang
