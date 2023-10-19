@@ -5,13 +5,14 @@ const FormData = require('form-data')
  * @description - login in pet
  */
 module.exports.loginPet = async function () {
-  const loginPetUrl = 'https://pet.icecat.biz/api/auth/login'
+  const loginPetUrl = 'https://pet.icecat.biz/api/v2/auth/login'
   const data = {
-    name: process.env.PET_LOGIN,
+    username: process.env.PET_LOGIN,
     password: process.env.PET_PASSWORD
   }
   const getResponse = await axios.post(loginPetUrl, data)
-  return getResponse.data.token
+
+  return getResponse.data.accessToken
 }
 
 
@@ -33,7 +34,9 @@ module.exports.changeStatus = async function (asset, token, status) {
  */
 
 module.exports.removeStory = async function (asset, typeOfStory, token) {
-  await this.changeStatus(asset, token, 'Under approval')
+  if (typeOfStory !== 'Amazon') {
+    await this.changeStatus(asset, token, 'Under approval')
+  }
 
   for (const object of asset.objects) {
     if ((object.type === 'Product story v2' && object.story.tag === typeOfStory) || object.type === 'Product story') {
@@ -139,7 +142,7 @@ module.exports.getOrCreateAsset = async function (brandId, productData, name, la
         return data
       })
     )
-
+    //TODO AMAZON CHECK
     function assetPriority(asset) {
       const hasPremium = asset.objects.some(o => o.story.tag === 'Premium' && o.type === 'Product story v2')
       const hasStandard = asset.objects.some(o => o.story.tag === 'Standard' && o.type === 'Product story v2')
@@ -316,7 +319,7 @@ module.exports.setLayout = async function (storyId, layoutId, petToken) {
 module.exports.getLayoutComponents = async function (layoutId, petToken) {
   const allComponentsRequest = await axios({
     method: 'get',
-    url: `https://pet.icecat.biz/api/components?layout=${layoutId}`,
+    url: `https://pet.icecat.biz/api/components?layout=${layoutId}&limit=0`,
     headers: {
       Authorization: `Bearer ${petToken}`
     }
@@ -324,13 +327,21 @@ module.exports.getLayoutComponents = async function (layoutId, petToken) {
 }
 
 module.exports.setComponentsToStory = async function (storyId, storyComponentParents, layoutId, petToken) {
-  const sortedKeys = Object.keys(storyComponentParents).sort()
+  const sortedKeys = Object.keys(storyComponentParents).sort() // Todo check 10, 11 CHANGE
+
+  // const sortedKeys = Object.keys(storyComponentParents).sort((a, b) => {
+  //   const componentA = Number(a.split("_")[1])
+  //   const componentB = Number(b.split("_")[1])
+  //
+  //   return componentA - componentB
+  // })
+
   for (const key of sortedKeys) {
     const importComponent = storyComponentParents[key]
     if (importComponent.petStoryComponentId) {
       const allComponentsRequest = await axios({
         method: 'get',
-        url: `https://pet.icecat.biz/api/components?layout=${layoutId}`,
+        url: `https://pet.icecat.biz/api/components?layout=${layoutId}&limit=0`,
         headers: {
           Authorization: `Bearer ${petToken}`
         }

@@ -11,7 +11,9 @@ const processedProducts = []
 const resultPath = path.resolve(__dirname, 'result')
 
 async function main(productName, productData, petToken) {
-  const typeOfStory = /premium/i.test(productName) ? 'Premium' : 'Standard'
+  const typeOfStory = /premium/i.test(productName) ? 'Premium'
+    : /amazon/i.test(productName)? 'Amazon'
+    : 'Standard'
 
   try {
     const petLangId = await petService.getPetLanguageId(petToken, productData.lang)
@@ -19,7 +21,7 @@ async function main(productName, productData, petToken) {
 
     const asset = await petService.getOrCreateAsset(petBrandId, productData, productName, petLangId, petToken)
 
-    await petService.removeStory(asset, typeOfStory , petToken)
+    await petService.removeStory(asset, typeOfStory, petToken)
     await createStory(asset, productData, petToken, typeOfStory)
 
   } catch (e) {
@@ -45,8 +47,10 @@ async function createStory(asset, productData, petToken, typeOfStory) {
   await petService.setLayout(storyId, productData.layoutId, petToken)
 
   await petService.setComponentsToStory(storyId, productData.components, productData.layoutId, petToken)
-  await petService.changeStatus(asset, petToken, 'Under approval') //TODO Status under approval
 
+  if (typeOfStory !== 'Amazon') {
+    await petService.changeStatus(asset, petToken, 'Under approval') //TODO Status under approval
+  }
   const reportData = {
     SKU: productData.mpn,
     typeOfStory: typeOfStory,
@@ -74,10 +78,6 @@ async function start() {
 
     const queue = queueModule.queueSettings()
     const petToken = await petService.loginPet()
-    // const productsJson = readInput.readJson()
-    // for (const productName in productsJson) {
-    //   queue.add(() => main(productName, productsJson[productName], petToken))
-    // }
 
     const directoryPath = path.join(__dirname, 'input')
     const files = await fs.readdir(directoryPath)
