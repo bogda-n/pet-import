@@ -17,12 +17,14 @@ async function main(productName, productData, petToken) {
 
   try {
     const petLangId = await petService.getPetLanguageId(petToken, productData.lang)
+
     const petBrandId = await petService.getPetBrandId(petToken, productData.brand)
+
     const asset = await petService.getOrCreateAsset(petBrandId, productData, productName, petLangId, petToken)
 
     await petService.removeStory(asset, typeOfStory, petToken)
-    await createStory(asset, productData, petToken, typeOfStory)
 
+    await createStory(asset, productData, petToken, typeOfStory)
   } catch (e) {
     console.error(e)
     console.error('Error', e.response?.data)
@@ -49,14 +51,15 @@ async function createStory(asset, productData, petToken, typeOfStory) {
   if (typeOfStory !== 'Amazon') {
     await petService.changeStatus(asset, petToken, 'Under approval') //TODO Status under approval
   }
+  const assetProduct = await petService.getAssetProduct(asset.id, petToken)
+
   const reportData = {
     SKU: productData.mpn,
     typeOfStory: typeOfStory,
     Language: productData.lang,
     AssetUrl: `https://pet.icecat.biz/assets/update/${asset.id}`,
     'Story Preview': `https://pet.icecat.biz/api/stories/preview/${storyId}`,
-    'Live Preview': `https://pet.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.lang?.id || asset.lang}&productId=${asset.mpns[0].id}`,
-    // 'Live Preview': `https://pet.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.lang}&productId=${asset.mpns[0].id}`,
+    'Live Preview': `https://pet.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.langId}&productId=${assetProduct.icecatId}`,
     'BrandURL': `https://pet.icecat.biz/assets?id=${asset.id}`,
     Status: 'Imported'
   }
