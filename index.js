@@ -29,6 +29,7 @@ async function main(productName, productData, petToken) {
     console.error(e)
     console.error('Error', e.response?.data)
     const reportData = {
+      Brand: productData.brand,
       SKU: productData.mpn,
       Language: productData.lang,
       Status: 'Error',
@@ -54,6 +55,7 @@ async function createStory(asset, productData, petToken, typeOfStory) {
   const assetProduct = await petService.getAssetProduct(asset.id, petToken)
 
   const reportData = {
+    Brand: productData.brand,
     SKU: productData.mpn,
     typeOfStory: typeOfStory,
     Language: productData.lang,
@@ -70,8 +72,8 @@ async function writeResult() {
   await fs.ensureDir(resultPath)
   const workBook = xlsx.utils.book_new()
   const workSheet = xlsx.utils.json_to_sheet(processedProducts)
-  xlsx.utils.book_append_sheet(workBook, workSheet, 'report')
-  xlsx.writeFile(workBook, `${resultPath}/report.xlsx`)
+  xlsx.utils.book_append_sheet(workBook, workSheet, 'download_report')
+  xlsx.writeFile(workBook, `${resultPath}/download_report.xlsx`)
   console.log('report is created')
 }
 

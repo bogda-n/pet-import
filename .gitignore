@@ -7,3 +7,5 @@ node_modules
 input
 result
 tempExampleDir
+# Distribution folder
+dist/
