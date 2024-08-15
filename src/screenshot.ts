@@ -94,11 +94,9 @@ async function takeScreenshot(url: string, outputDir: string, productData: Produ
       const wrapper = document.querySelector('.pet-wrapper')
       if (container) {
         container.setAttribute('style', 'max-width: 1230px !important;')
-        // container.setAttribute('style', 'max-width: 1230px !important; padding-left: 0; padding-right: 0;')
       }
       if (wrapper) {
         wrapper.setAttribute('style', 'max-width: 1230px !important;')
-        // wrapper.setAttribute('style', 'max-width: 1230px !important; padding-left: 0; padding-right: 0;')
       }
     })
 
@@ -186,11 +184,12 @@ async function takeScreenshot(url: string, outputDir: string, productData: Produ
               height: Math.floor(boundingBox.height + computedStyle.marginBottom) - 2
             }
           } else {
+            console.log('+ computedStyle.marginBottom', computedStyle.marginBottom)
             clip = {
               x: boundingBox?.x + 15,  // remove paddings left/right 15px
-              y: boundingBox.y + 2,
+              y: boundingBox.y + computedStyle.marginBottom + 2,
               width: boundingBox.width - 30, // remove paddings left/right 15px
-              height: boundingBox.height - 2
+              height: boundingBox.height + computedStyle.marginBottom - 2
             }
 
           }

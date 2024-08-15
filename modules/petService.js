@@ -5,7 +5,7 @@ const FormData = require('form-data')
  * @description - login in pet
  */
 module.exports.loginPet = async function () {
-  const loginPetUrl = 'https://pet.icecat.biz/api/v2/auth/login'
+  const loginPetUrl = 'https://studio.icecat.biz/api/v2/auth/login'
   const data = {
     username: process.env.PET_LOGIN,
     password: process.env.PET_PASSWORD
@@ -19,7 +19,7 @@ module.exports.loginPet = async function () {
 module.exports.changeStatus = async function (asset, token, status) {
   await axios({
     method: 'PATCH',
-    url: `https://pet.icecat.biz/api/v2/assets/${asset.id}/status`,
+    url: `https://studio.icecat.biz/api/v2/assets/${asset.id}/status`,
     headers: {
       Authorization: `Bearer ${token}`
     },
@@ -30,7 +30,7 @@ module.exports.changeStatus = async function (asset, token, status) {
 module.exports.getStories = async function (assetId, typeOfStory, token) {
   const res = await axios({
     method: 'get',
-    url: 'https://pet.icecat.biz/api/v2/stories',
+    url: 'https://studio.icecat.biz/api/v2/stories',
     params: {
       assetId: [assetId]
     },
@@ -59,7 +59,7 @@ module.exports.removeStory = async function (asset, typeOfStory, token) {
       if (s.version === 2 && s.tag === typeOfStory.toLowerCase()) {
         await axios({
           method: 'DELETE',
-          url: 'https://pet.icecat.biz/api/v2/stories/' + s.id,
+          url: 'https://studio.icecat.biz/api/v2/stories/' + s.id,
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -78,7 +78,7 @@ module.exports.removeStory = async function (asset, typeOfStory, token) {
 module.exports.getPetLanguageId = async function (token, lang) {
   const getPetLanguages = await axios({
     method: 'get',
-    url: 'https://pet.icecat.biz/api/v2/langs',
+    url: 'https://studio.icecat.biz/api/v2/langs',
     params: {
       sortBy: 'icecat_id',
       order: '1',
@@ -105,7 +105,7 @@ module.exports.getPetLanguageId = async function (token, lang) {
 module.exports.getPetBrandId = async function (token, brandName) {
   const getPetBrands = await axios({
     method: 'get',
-    url: 'https://pet.icecat.biz/api/brands/search',
+    url: 'https://studio.icecat.biz/api/brands/search',
     params: {
       name: brandName
     },
@@ -135,7 +135,7 @@ module.exports.getPetBrandId = async function (token, brandName) {
 module.exports.getOrCreateAsset = async function (brandId, productData, name, langId, token) {
   const getAssetsByBrandAndLang = await axios({
     method: 'get',
-    url: 'https://pet.icecat.biz/api/v2/assets',
+    url: 'https://studio.icecat.biz/api/v2/assets',
     params: {
       brandIds: [brandId],
       mpns: [productData.mpn.toUpperCase()],
@@ -155,7 +155,7 @@ module.exports.getOrCreateAsset = async function (brandId, productData, name, la
     const assets = await Promise.all(getAssetsByBrandAndLang.data.items.map(async (asset) => {
       const { data: { items } } = await axios({
         method: 'GET',
-        url: 'https://pet.icecat.biz/api/v2/stories',
+        url: 'https://studio.icecat.biz/api/v2/stories',
         params: {
           assetId: [asset.id]
         },
@@ -194,7 +194,7 @@ module.exports.getOrCreateAsset = async function (brandId, productData, name, la
     await Promise.all(sortedAssets.map(asset => {
       return axios({
         method: 'DELETE',
-        url: 'https://pet.icecat.biz/api/v2/assets/' + asset.id,
+        url: 'https://studio.icecat.biz/api/v2/assets/' + asset.id,
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -210,7 +210,7 @@ module.exports.getOrCreateAsset = async function (brandId, productData, name, la
 module.exports.assetBrand = async function (brand, petToken) {
   const getPetBrands = await axios({
     method: 'get',
-    url: 'https://pet.icecat.biz/api/brands/search',
+    url: 'https://studio.icecat.biz/api/brands/search',
     params: {
       name: brand
     },
@@ -229,7 +229,7 @@ module.exports.assetBrand = async function (brand, petToken) {
 module.exports.assetMpn = async function (brandId, mpn, petToken) {
   const assetMpnRequest = await axios({
     method: 'post',
-    url: 'https://pet.icecat.biz/api/icecat/product',
+    url: 'https://studio.icecat.biz/api/icecat/product',
     data: {
       mpns: [mpn],
       brand: brandId
@@ -245,7 +245,7 @@ module.exports.assetMpn = async function (brandId, mpn, petToken) {
 module.exports.assetCategory = async function (productId, petToken) {
   const productRequest = await axios({
     method: 'get',
-    url: `https://pet.icecat.biz/api/icecat/product/${productId}/general`,
+    url: `https://studio.icecat.biz/api/icecat/product/${productId}/general`,
     headers: {
       Authorization: `Bearer ${petToken}`
     }
@@ -255,7 +255,7 @@ module.exports.assetCategory = async function (productId, petToken) {
 
   const getCategories = await axios({
     method: 'get',
-    url: `https://pet.icecat.biz/api/categories/search`,
+    url: `https://studio.icecat.biz/api/categories/search`,
     params: {
       name: icecatCategory.CategoryName
     },
@@ -276,7 +276,7 @@ module.exports.assetCategory = async function (productId, petToken) {
 module.exports.getPetProduct = async function (data, petToken) {
   const getProduct = await axios({
     method: 'get',
-    url: `https://pet.icecat.biz/api/v2/products/search`,
+    url: `https://studio.icecat.biz/api/v2/products/search`,
     params: data,
     headers: {
       Authorization: `Bearer ${petToken}`
@@ -293,6 +293,7 @@ module.exports.createAsset = async function (productName, productData, petToken)
 
   if (brandObject) {
     const assetSkuObject = await this.assetMpn(brandObject.icecatId, productData.mpn.toUpperCase(), petToken)
+
     const assetCategoryObject = await this.assetCategory(assetSkuObject[0].ProductId, petToken)
 
     // request to find product Id(Pet product) (param icecatBrandId=3479&mpns[]=60337)
@@ -313,7 +314,7 @@ module.exports.createAsset = async function (productName, productData, petToken)
 
     const newAssetRequest = await axios({
       method: 'post',
-      url: 'https://pet.icecat.biz/api/v2/assets',
+      url: 'https://studio.icecat.biz/api/v2/assets',
       data: newAssetData,
       headers: {
         Authorization: `Bearer ${petToken}`
@@ -334,7 +335,7 @@ module.exports.createStoryV2 = async function (assetId, typeOfStory, petToken) {
 
   const storyCreateRequest = await axios({
     method: 'POST',
-    url: 'https://pet.icecat.biz/api/v2/stories',
+    url: 'https://studio.icecat.biz/api/v2/stories',
     data,
     headers: {
       Authorization: `Bearer ${petToken}`
@@ -346,7 +347,7 @@ module.exports.createStoryV2 = async function (assetId, typeOfStory, petToken) {
 module.exports.getAssetProduct = async function (assetId, petToken) {
   const res = await axios({
     method: 'get',
-    url: `https://pet.icecat.biz/api/v2/assets/${assetId}/products`,
+    url: `https://studio.icecat.biz/api/v2/assets/${assetId}/products`,
     headers: {
       Authorization: `Bearer ${petToken}`
     }
@@ -358,7 +359,7 @@ module.exports.getAssetProduct = async function (assetId, petToken) {
 module.exports.setLayout = async function (storyId, layoutId, petToken) {
   const setLayotRequest = await axios({
     method: 'patch',
-    url: `https://pet.icecat.biz/api/stories/${storyId}`,
+    url: `https://studio.icecat.biz/api/stories/${storyId}`,
     data: { layout: layoutId },
     headers: {
       Authorization: `Bearer ${petToken}`
@@ -369,7 +370,7 @@ module.exports.setLayout = async function (storyId, layoutId, petToken) {
 module.exports.getLayoutComponents = async function (layoutId, petToken) {
   const allComponentsRequest = await axios({
     method: 'get',
-    url: `https://pet.icecat.biz/api/components?layout=${layoutId}&limit=0`,
+    url: `https://studio.icecat.biz/api/components?layout=${layoutId}&limit=0`,
     headers: {
       Authorization: `Bearer ${petToken}`
     }
@@ -390,7 +391,7 @@ module.exports.setComponentsToStory = async function (storyId, storyComponentPar
     if (importComponent.petStoryComponentId) {
       const allComponentsRequest = await axios({
         method: 'get',
-        url: `https://pet.icecat.biz/api/components?layout=${layoutId}&limit=0`,
+        url: `https://studio.icecat.biz/api/components?layout=${layoutId}&limit=0`,
         headers: {
           Authorization: `Bearer ${petToken}`
         }
@@ -410,7 +411,7 @@ module.exports.setComponentsToStory = async function (storyId, storyComponentPar
       }
       const addStoryComponent = await axios({
         method: 'post',
-        url: `https://pet.icecat.biz/api/stories/${storyId}/components`,
+        url: `https://studio.icecat.biz/api/stories/${storyId}/components`,
         data: componentData,
         headers: {
           Authorization: `Bearer ${petToken}`
@@ -431,7 +432,7 @@ module.exports.setComponentsToStory = async function (storyId, storyComponentPar
 
       const addDataToComponent = await axios({
         method: 'patch',
-        url: `https://pet.icecat.biz/api/stories/components/${addStoryComponent.data.id}`,
+        url: `https://studio.icecat.biz/api/stories/components/${addStoryComponent.data.id}`,
         data: patchData,
         headers: {
           Authorization: `Bearer ${petToken}`

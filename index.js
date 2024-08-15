@@ -59,10 +59,10 @@ async function createStory(asset, productData, petToken, typeOfStory) {
     SKU: productData.mpn,
     typeOfStory: typeOfStory,
     Language: productData.lang,
-    AssetUrl: `https://pet.icecat.biz/assets/update/${asset.id}`,
-    'Story Preview': `https://pet.icecat.biz/api/stories/preview/${storyId}`,
-    'Live Preview': `https://pet.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.langId}&productId=${assetProduct.icecatId}`,
-    'BrandURL': `https://pet.icecat.biz/assets?id=${asset.id}`,
+    AssetUrl: `https://studio.icecat.biz/assets/update/${asset.id}`,
+    'Story Preview': `https://studio.icecat.biz/api/stories/preview/${storyId}`,
+    'Live Preview': `https://studio.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.langId}&productId=${assetProduct.icecatId}`,
+    'BrandURL': `https://studio.icecat.biz/assets?id=${asset.id}`,
     Status: 'Imported'
   }
   processedProducts.push(reportData)
