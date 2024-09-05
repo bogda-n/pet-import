@@ -65,7 +65,7 @@ const config = {
 const s3Storage = new S3Storage(config)
 
 
-async function takeScreenshot(url: string, outputDir: string, productData: ProductData): Promise<Record<string, string>> {
+async function takeScreenshot(url: string, productData: ProductData): Promise<Record<string, string>> {
   const currentDate = getCurrentDate()
   const browser = await puppeteer.launch({
     headless: true,
@@ -119,8 +119,6 @@ async function takeScreenshot(url: string, outputDir: string, productData: Produ
       throw new Error('No .pet-row elements found on the page.')
     }
 
-    await fs.ensureDir(outputDir)
-
     const fileUrls: Record<string, string> = {}
 
     let index = 1
@@ -163,8 +161,6 @@ async function takeScreenshot(url: string, outputDir: string, productData: Produ
         if (boundingBox) {
           await delay(2000)
 
-          const screenshotPath = path.join(outputDir, `screenshot_${index}_${productData.SKU}_${productData.Language}_${productData.typeOfStory}.jpg`)
-
           const computedStyle = await page.evaluate(el => {
             const style = window.getComputedStyle(el)
             return {
@@ -184,7 +180,6 @@ async function takeScreenshot(url: string, outputDir: string, productData: Produ
               height: Math.floor(boundingBox.height + computedStyle.marginBottom) - 2
             }
           } else {
-            console.log('+ computedStyle.marginBottom', computedStyle.marginBottom)
             clip = {
               x: boundingBox?.x + 15,  // remove paddings left/right 15px
               y: boundingBox.y + computedStyle.marginBottom + 2,
@@ -228,11 +223,8 @@ async function takeScreenshot(url: string, outputDir: string, productData: Produ
 async function main(productData: ProductData): Promise<ResultData> {
   try {
     console.log('productData', productData)
-    const outputDir = path.resolve(__dirname, `../screenshots/${productData.SKU}_${productData.typeOfStory}`)
 
-    await fs.emptyDir(outputDir)
-
-    const fileUrls = await takeScreenshot(productData['Story Preview'], outputDir, productData)
+    const fileUrls = await takeScreenshot(productData['Story Preview'], productData)
 
     return {
       SKU: productData.SKU,
@@ -279,7 +271,7 @@ const start = async (): Promise<void> => {
 
         await Promise.all(productData.map(product => {
           return limit(async () => {
-            const lang = langs.find(l => l.code === product.Language)
+            const lang = langs.find(l => l.code.toLowerCase() === product.Language.toLowerCase())
             product.Language = lang?.name || 'not found'
             const result = await main(product)
             results.push(result)
@@ -296,7 +288,7 @@ const start = async (): Promise<void> => {
         })
 
         const csvWriter = createObjectCsvWriter({
-          path: path.join(resultPath, `report_${new Date().toISOString()}.csv`),
+          path: path.join(resultPath, `report_${new Date().toISOString().replace(/:/g, '-')}.csv`),
           header: [
             { id: 'SKU', title: 'Product code' },
             { id: 'Brand', title: 'Brand' },
@@ -310,10 +302,10 @@ const start = async (): Promise<void> => {
         })
 
         await csvWriter.writeRecords(results)
-        console.log('CSV report saved to', path.join(resultPath, `report_${new Date().toISOString()}.csv`))
+        console.log('CSV report saved to', path.join(resultPath, `report_${new Date().toISOString().replace(/:/g, '-')}.csv`))
 
         // Write all URLs to a separate CSV file
-        const allUrlsPath = path.join(resultPath, `all_urls_${new Date().toISOString()}.csv`)
+        const allUrlsPath = path.join(resultPath, `all_urls_${new Date().toISOString().replace(/:/g, '-')}.csv`)
         await fs.writeFile(allUrlsPath, allUrls.join('\n'))
         console.log('All URLs CSV saved to', allUrlsPath)
 

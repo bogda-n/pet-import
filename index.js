@@ -53,15 +53,14 @@ async function createStory(asset, productData, petToken, typeOfStory) {
     await petService.changeStatus(asset, petToken, 'Under approval') //TODO Status under approval
   }
   const assetProduct = await petService.getAssetProduct(asset.id, petToken)
-
   const reportData = {
     Brand: productData.brand,
     SKU: productData.mpn,
     typeOfStory: typeOfStory,
     Language: productData.lang,
     AssetUrl: `https://studio.icecat.biz/assets/update/${asset.id}`,
-    'Story Preview': `https://studio.icecat.biz/api/stories/preview/${storyId}`,
-    'Live Preview': `https://studio.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.langId}&productId=${assetProduct.icecatId}`,
+    'Story Preview': `https://studio.icecat.biz/api/v2/stories/${storyId}/export?format=html&maxWidth=1200&onlyBody=false&analytics=false`,
+    'Live Preview': `https://studio.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.lang?.id}&productId=${assetProduct.icecatId}`,
     'BrandURL': `https://studio.icecat.biz/assets?id=${asset.id}`,
     Status: 'Imported'
   }
@@ -79,7 +78,6 @@ async function writeResult() {
 
 async function start() {
   try {
-
     const queue = queueModule.queueSettings()
     const petToken = await petService.loginPet()
 

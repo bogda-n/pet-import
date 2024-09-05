@@ -163,7 +163,7 @@ module.exports.getOrCreateAsset = async function (brandId, productData, name, la
           Authorization: `Bearer ${token}`
         }
       })
-      return {...asset, stories: items}
+      return { ...asset, stories: items }
     }))
 
     //TODO AMAZON CHECK
@@ -359,8 +359,8 @@ module.exports.getAssetProduct = async function (assetId, petToken) {
 module.exports.setLayout = async function (storyId, layoutId, petToken) {
   const setLayotRequest = await axios({
     method: 'patch',
-    url: `https://studio.icecat.biz/api/stories/${storyId}`,
-    data: { layout: layoutId },
+    url: `https://studio.icecat.biz/api/v2/stories/${storyId}`,
+    data: { layoutId: layoutId },
     headers: {
       Authorization: `Bearer ${petToken}`
     }
@@ -389,55 +389,59 @@ module.exports.setComponentsToStory = async function (storyId, storyComponentPar
     delete importComponent.customTemplate
 
     if (importComponent.petStoryComponentId) {
-      const allComponentsRequest = await axios({
-        method: 'get',
-        url: `https://studio.icecat.biz/api/components?layout=${layoutId}&limit=0`,
+
+      // ADD story component
+      const storyComponent = await axios({
+        method: 'POST',
+        url: `https://studio.icecat.biz/api/v2/story-components/${storyId}/add`,
+        data: {
+          parentId: importComponent.petStoryComponentId
+        },
         headers: {
           Authorization: `Bearer ${petToken}`
         }
       })
 
-      const layoutComponent = allComponentsRequest.data.components.find(comp => {
-        if (comp.id === importComponent.petStoryComponentId) {
-          return comp
-        }
-      })
-      const componentData = {
-        // data: importComponent.data,
-        data: layoutComponent.data,
-        name: layoutComponent.name,
-        parent: layoutComponent.id,
-        template: layoutComponent.template
-      }
-      const addStoryComponent = await axios({
-        method: 'post',
-        url: `https://studio.icecat.biz/api/stories/${storyId}/components`,
-        data: componentData,
-        headers: {
-          Authorization: `Bearer ${petToken}`
-        }
-      })
       // logic for custom components settings
-      let template
-      if (storyComponentParents[key].customTemplate) {
-        template = storyComponentParents[key].customTemplate
-      } else {
-        template = layoutComponent.template
+      const processData = {
+        data: {
+          operationType: 'processData',
+          processDataContent: {
+            data: importComponent.data
+          }
+        }
       }
-      //
-      const patchData = {
-        data: importComponent.data,
-        template
-      }
-
-      const addDataToComponent = await axios({
-        method: 'patch',
-        url: `https://studio.icecat.biz/api/stories/components/${addStoryComponent.data.id}`,
-        data: patchData,
+      // UPDATE story component
+      await axios({
+        method: 'PATCH',
+        url: `https://studio.icecat.biz/api/v2/story-components/${storyComponent.data.id}?res=original`,
+        data: processData,
         headers: {
           Authorization: `Bearer ${petToken}`
         }
       })
+
+      // TODO ADD Decorators changes
+      // let template
+      // if (storyComponentParents[key].customTemplate) {
+      //   template = storyComponentParents[key].customTemplate
+      // } else {
+      //   template = layoutComponent.template
+      // }
+      // //
+      // const patchData = {
+      //   data: importComponent.data,
+      //   template
+      // }
+      //
+      // const addDataToComponent = await axios({
+      //   method: 'patch',
+      //   url: `https://studio.icecat.biz/api/stories/components/${addStoryComponent.data.id}`,
+      //   data: patchData,
+      //   headers: {
+      //     Authorization: `Bearer ${petToken}`
+      //   }
+      // })
     }
   }
 }
