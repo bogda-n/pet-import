@@ -420,28 +420,19 @@ module.exports.setComponentsToStory = async function (storyId, storyComponentPar
           Authorization: `Bearer ${petToken}`
         }
       })
-
-      // TODO ADD Decorators changes
-      // let template
-      // if (storyComponentParents[key].customTemplate) {
-      //   template = storyComponentParents[key].customTemplate
-      // } else {
-      //   template = layoutComponent.template
-      // }
-      // //
-      // const patchData = {
-      //   data: importComponent.data,
-      //   template
-      // }
-      //
-      // const addDataToComponent = await axios({
-      //   method: 'patch',
-      //   url: `https://studio.icecat.biz/api/stories/components/${addStoryComponent.data.id}`,
-      //   data: patchData,
-      //   headers: {
-      //     Authorization: `Bearer ${petToken}`
-      //   }
-      // })
+      // add decorators
+      if (storyComponentParents[key].decorators) {
+        await axios ({
+          method: 'PATCH',
+          url: `https://studio.icecat.biz/api/v2/story-components/${storyComponent.data.id}/update-decorators?res=original`,
+          data: {
+            decorators: storyComponentParents[key].decorators
+          },
+          headers: {
+            Authorization: `Bearer ${petToken}`
+          }
+        })
+      }
     }
   }
 }
