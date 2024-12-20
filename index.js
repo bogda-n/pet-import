@@ -45,24 +45,27 @@ async function main(productName, productData, petToken) {
 
 async function createStory(asset, productData, petToken, typeOfStory) {
 
-  const storyId = await petService.createStoryV2(asset.id, typeOfStory, petToken)
-  await petService.setLayout(storyId, productData.layoutId, petToken)
-  await petService.setComponentsToStory(storyId, productData.components, productData.layoutId, petToken)
+   const storyId = await petService.createStoryV2(asset.id, typeOfStory, productData.layoutId,  petToken)
+  const productId = asset.products[0].id
 
-  if (typeOfStory !== 'Amazon') {
-    await petService.changeStatus(asset, petToken, 'Under approval') //TODO Status under approval
+   await petService.setComponentsToStory(storyId, productData.components, productData.layoutId, petToken)
+
+  if (typeOfStory !== 'amazon' || typeOfStory !== 'amazon-premium') {
+    await petService.changeStatus(storyId, petToken, 'completed')
   }
-  const assetProduct = await petService.getAssetProduct(asset.id, petToken)
+  // const assetProduct = await petService.getAssetProduct(asset.id, petToken)
+
   const reportData = {
     Brand: productData.brand,
     SKU: productData.mpn,
     typeOfStory: typeOfStory,
     Language: productData.lang,
-    AssetUrl: `https://studio.icecat.biz/assets/update/${asset.id}`,
-    'Story Preview': `https://studio.icecat.biz/api/v2/stories/${storyId}/export?format=html&maxWidth=1200&onlyBody=false&analytics=false`,
-    'Live Preview': `https://studio.icecat.biz/product/preview?assetId=${asset.id}&langId=${asset.lang?.id}&productId=${assetProduct.icecatId}`,
+    AssetUrl: `https://studio.icecat.biz/assets/${asset.id}`,
+    'Screenshot Preview': `https://studio.icecat.biz/api/v2/stories/${storyId}/export?format=html&maxWidth=1200&onlyBody=false&analytics=false`,
+    'Story Preview': `https://studio.icecat.biz/assets/preview?assetId=${asset.id}&storyId=${storyId}&productId=${productId}`,
+    'Live Preview': `https://studio.icecat.biz/assets/preview?assetId=${asset.id}&productId=${productId}&icecatLive=true`,
     'BrandURL': `https://studio.icecat.biz/assets?id=${asset.id}`,
-    Status: 'Imported'
+    Status:  'Imported'
   }
   processedProducts.push(reportData)
 }

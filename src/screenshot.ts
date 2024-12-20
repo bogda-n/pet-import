@@ -38,6 +38,7 @@ interface ProductData {
   typeOfStory: StoryType
   Language: string
   AssetUrl: string
+  'Screenshot Preview': string
   'Story Preview': string
   'Live Preview': string
   BrandURL: string
@@ -222,9 +223,9 @@ async function takeScreenshot(url: string, productData: ProductData): Promise<Re
 
 async function main(productData: ProductData): Promise<ResultData> {
   try {
-    console.log('productData', productData)
 
-    const fileUrls = await takeScreenshot(productData['Story Preview'], productData)
+    // const fileUrls = await takeScreenshot(productData['Story Preview'], productData)
+    const fileUrls = await takeScreenshot(productData['Screenshot Preview'], productData)
 
     return {
       SKU: productData.SKU,

@@ -25,6 +25,10 @@ export const langs = [
   {
     code: 'de',
     name: 'German'
+  },
+  {
+    code: 'en',
+    name: 'English'
   }
 ]
 
