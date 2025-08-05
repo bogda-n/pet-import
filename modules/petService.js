@@ -159,17 +159,17 @@ module.exports.getPetBrandId = async function (token, brandName) {
  */
 module.exports.getOrCreateAsset = async function (brandId, productData, name, langId, token) {
   const getAssetsByBrandAndLang = await axios({
-    method: 'get',
+    method: 'GET',
     url: `${generalLink}/assets`,
-    params: {
+     params: {
       brandIds: [brandId],
       searchKeys: [productData.mpn.toUpperCase()],
       langIds: [langId]
-    },
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  })
+     },
+     headers: {
+       Authorization: `Bearer ${token}`
+     }
+   })
 
   // Return exist asset
   if (getAssetsByBrandAndLang.data.count >= 1) {

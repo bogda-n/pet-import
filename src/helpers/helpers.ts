@@ -29,7 +29,36 @@ export const langs = [
   {
     code: 'en',
     name: 'English'
+  },
+  {
+    code: 'es',
+    name: 'Spanish'
+  },
+  {
+    code: 'pt',
+    name: 'Portuguese'
+  },
+  {
+    code: 'pl',
+    name: 'Polish'
+  },
+  {
+    code: 'tr',
+    name: 'Turkish'
+  },
+  {
+    code: 'cs',
+    name: 'Czech'
+  },
+  {
+    code: 'hu',
+    name: 'Hungarian'
+  },
+  {
+    code: 'ro',
+    name: 'Romanian'
   }
+
 ]
 
 // Function to get the current date in 'yyyy-MM-dd' format

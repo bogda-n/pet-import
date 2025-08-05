@@ -26,7 +26,7 @@ async function main(productName, productData, petToken) {
 
     await createStory(asset, productData, petToken, typeOfStory)
   } catch (e) {
-    console.error(e)
+    // console.error(e)
     console.error('Error', e.response?.data)
     const reportData = {
       Brand: productData.brand,
