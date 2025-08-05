@@ -106,15 +106,14 @@ module.exports.getPetLanguageId = async function (token, lang) {
     url: `${generalLink}/langs`,
     params: {
       sortBy: 'icecat_id',
+      limit: '100',
       order: '1'
     },
     headers: {
       Authorization: `Bearer ${token}`
     }
   })
-
   const languageObject = getPetLanguages.data.items.find(petLang => {
-
     if (petLang.short_code.toLowerCase() === lang.toLowerCase()) {
       return petLang
     }
