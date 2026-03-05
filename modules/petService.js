@@ -1,6 +1,32 @@
 const axios = require('axios')
 const FormData = require('form-data')
 const generalLink = 'https://studio.icecat.biz/api/v2'
+
+/**
+ * @description - get auth headers based on auth method (API Key or Bearer token)
+ * @param {string|null} token
+ * @returns {object} headers
+ */
+function getAuthHeaders(token) {
+  if (process.env.PET_API_KEY) {
+    return { 'X-API-Key': process.env.PET_API_KEY }
+  }
+  return { Authorization: `Bearer ${token}` }
+}
+
+/**
+ * @description - authenticate using API Key or login/password
+ * @returns {Promise<string|null>} token or null if using API Key
+ */
+module.exports.authenticate = async function () {
+  if (process.env.PET_API_KEY) {
+    console.log('Auth: using API Key')
+    return null
+  }
+  console.log('Auth: using login/password')
+  return module.exports.loginPet()
+}
+
 /**
  * @description - login in pet
  */
@@ -23,19 +49,25 @@ module.exports.changeStatus = async function (storyId, token, status) {
       await axios({
         method: 'PATCH',
         url: `${generalLink}/stories/${storyId}/status`,
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
+        headers: getAuthHeaders(token),
         data: { status: 'mapped' }
       })
 
       await axios({
         method: 'PATCH',
         url: `${generalLink}/stories/${storyId}/status`,
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
+        headers: getAuthHeaders(token),
         data: { status: 'completed' }
+      })
+      break
+    }
+    case 'in-progress': {
+      console.log('set story to in-progress')
+      await axios({
+        method: 'PATCH',
+        url: `${generalLink}/stories/${storyId}/status`,
+        headers: getAuthHeaders(token),
+        data: { status: 'in-progress' }
       })
       break
     }
@@ -43,9 +75,7 @@ module.exports.changeStatus = async function (storyId, token, status) {
       await axios({
         method: 'PATCH',
         url: `${generalLink}/stories/${storyId}/status`,
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
+        headers: getAuthHeaders(token),
         data: { status: 'completed' }
       })
   }
@@ -58,9 +88,7 @@ module.exports.getStories = async function (assetId, typeOfStory, token) {
     params: {
       assetId: [assetId]
     },
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+    headers: getAuthHeaders(token)
   })
   return res.data
 }
@@ -77,17 +105,15 @@ module.exports.removeStory = async function (asset, typeOfStory, token) {
 
   if (storiesData.count > 0) {
     for (const s of storiesData.items) {
-      // TODO Exclusive remove ???
+
       if (s.version === 2 && s.tag === typeOfStory.toLowerCase() && s.tag !== 'exclusive' && s.tag !== 'amazon' && s.tag !== 'amazon-premium') {
 
-        // await this.changeStatus(s.id, token, 'in-progress') // TODO Error   message: 'The story is already in the "in-progress" status.',   statusCode: 400
+        await this.changeStatus(s.id, token, 'in-progress')
 
         await axios({
           method: 'DELETE',
           url: `${generalLink}/stories/${s.id}`,
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+          headers: getAuthHeaders(token)
         })
       }
     }
@@ -109,9 +135,7 @@ module.exports.getPetLanguageId = async function (token, lang) {
       limit: '100',
       order: '1'
     },
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+    headers: getAuthHeaders(token)
   })
   const languageObject = getPetLanguages.data.items.find(petLang => {
     if (petLang.short_code.toLowerCase() === lang.toLowerCase()) {
@@ -133,9 +157,7 @@ module.exports.getPetBrandId = async function (token, brandName) {
     params: {
       name: brandName
     },
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+    headers: getAuthHeaders(token)
   })
 
   const brandObject = getPetBrands.data.items.find(petBrand => {
@@ -147,15 +169,6 @@ module.exports.getPetBrandId = async function (token, brandName) {
   return brandObject.id
 }
 
-
-/**
- * @description - search asset by brand, mpn, name, owner and language
- * @param brandId
- * @param mpn
- * @param name
- * @param langId
- * @param token
- */
 module.exports.getOrCreateAsset = async function (brandId, productData, name, langId, token) {
   const getAssetsByBrandAndLang = await axios({
     method: 'GET',
@@ -165,9 +178,7 @@ module.exports.getOrCreateAsset = async function (brandId, productData, name, la
       searchKeys: [productData.mpn.toUpperCase()],
       langIds: [langId]
      },
-     headers: {
-       Authorization: `Bearer ${token}`
-     }
+     headers: getAuthHeaders(token)
    })
 
   // Return exist asset
@@ -183,9 +194,7 @@ module.exports.getOrCreateAsset = async function (brandId, productData, name, la
         params: {
           assetId: [asset.id]
         },
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: getAuthHeaders(token)
       })
       return { ...asset, stories: items }
     }))
@@ -238,9 +247,7 @@ module.exports.assetBrand = async function (name, petToken) {
     params: {
       name
     },
-    headers: {
-      Authorization: `Bearer ${petToken}`
-    }
+    headers: getAuthHeaders(petToken)
   })
 
   const brandObject = getPetBrands.data.items.find(petBrand => {
@@ -260,9 +267,7 @@ module.exports.getProduct = async function (brandObject, mpn, petToken) {
       brandId: brandObject.id,
       mpns: [mpn]
     },
-    headers: {
-      Authorization: `Bearer ${petToken}`
-    }
+    headers: getAuthHeaders(petToken)
   })
 
   const mpnId = productsRequest.data.items[0].id
@@ -270,9 +275,7 @@ module.exports.getProduct = async function (brandObject, mpn, petToken) {
   const products = await axios({
     method: 'GET',
     url: `${generalLink}/products/${mpnId}`,
-    headers: {
-      Authorization: `Bearer ${petToken}`
-    }
+    headers: getAuthHeaders(petToken)
   })
   return products.data
 }
@@ -313,9 +316,7 @@ module.exports.createAsset = async function (productName, productData, petToken)
     method: 'POST',
     url: 'https://studio.icecat.biz/api/v2/assets',
     data: dataToCreate,
-    headers: {
-      Authorization: `Bearer ${petToken}`
-    }
+    headers: getAuthHeaders(petToken)
   })
   return newAssetRequest.data
 }
@@ -334,8 +335,7 @@ module.exports.createStoryV2 = async function (assetId, typeOfStory, layoutId, p
      method: 'POST',
      url: `${generalLink}/stories`,
      data,
-     headers: { Authorization: `Bearer ${petToken} `
-     }
+     headers: getAuthHeaders(petToken)
     })
   return storyCreateRequest.data.id
 }
@@ -344,9 +344,7 @@ module.exports.getAssetProduct = async function (assetId, petToken) {
   const res = await axios({
     method: 'get',
     url: `https://studio.icecat.biz/api/v2/assets/${assetId}/products`,
-    headers: {
-      Authorization: `Bearer ${petToken}`
-    }
+    headers: getAuthHeaders(petToken)
   })
   return res.data[0]
 }
@@ -357,9 +355,7 @@ module.exports.setLayout = async function (storyId, layoutId, petToken) {
     method: 'patch',
     url: `https://studio.icecat.biz/api/v2/stories/${storyId}`,
     data: { layoutId: layoutId },
-    headers: {
-      Authorization: `Bearer ${petToken}`
-    }
+    headers: getAuthHeaders(petToken)
   })
 }
 
@@ -367,9 +363,7 @@ module.exports.getLayoutComponents = async function (layoutId, petToken) {
   const allComponentsRequest = await axios({
     method: 'get',
     url: `https://studio.icecat.biz/api/components?layout=${layoutId}&limit=0`,
-    headers: {
-      Authorization: `Bearer ${petToken}`
-    }
+    headers: getAuthHeaders(petToken)
   })
 }
 
@@ -394,9 +388,7 @@ module.exports.setComponentsToStory = async function (storyId, storyComponentPar
           storyId,
           parentId: importComponent.petStoryComponentId
         },
-         headers: {
-           Authorization: `Bearer ${petToken}`
-         }
+         headers: getAuthHeaders(petToken)
        })
 
       // logic for custom components settings
@@ -413,9 +405,7 @@ module.exports.setComponentsToStory = async function (storyId, storyComponentPar
         method: 'PATCH',
         url: `${generalLink}/story-components/${storyComponent.data.id}?res=original`,
         data: processData,
-        headers: {
-          Authorization: `Bearer ${petToken}`
-        }
+        headers: getAuthHeaders(petToken)
       })
       // add decorators
       if (storyComponentParents[key].decorators) {
@@ -425,9 +415,7 @@ module.exports.setComponentsToStory = async function (storyId, storyComponentPar
           data: {
             decorators: storyComponentParents[key].decorators
           },
-          headers: {
-            Authorization: `Bearer ${petToken}`
-          }
+          headers: getAuthHeaders(petToken)
         })
       }
     }

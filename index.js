@@ -12,8 +12,8 @@ const resultPath = path.resolve(__dirname, 'result')
 
 async function main(productName, productData, petToken) {
   const typeOfStory = /premium/i.test(productName) ? 'Premium'
-    : /amazon/i.test(productName)? 'Amazon'
-    : 'Standard'
+    : /amazon/i.test(productName) ? 'Amazon'
+      : 'Standard'
 
   try {
     const petLangId = await petService.getPetLanguageId(petToken, productData.lang)
@@ -26,7 +26,7 @@ async function main(productName, productData, petToken) {
 
     await createStory(asset, productData, petToken, typeOfStory)
   } catch (e) {
-    // console.error(e)
+    console.error(e)
     console.error('Error', e.response?.data)
     const reportData = {
       Brand: productData.brand,
@@ -45,11 +45,11 @@ async function main(productName, productData, petToken) {
 
 async function createStory(asset, productData, petToken, typeOfStory) {
 
-   const storyId = await petService.createStoryV2(asset.id, typeOfStory, productData.layoutId,  petToken)
+  const storyId = await petService.createStoryV2(asset.id, typeOfStory, productData.layoutId, petToken)
+
   const productId = asset.products[0].id
 
-   await petService.setComponentsToStory(storyId, productData.components, productData.layoutId, petToken)
-
+  await petService.setComponentsToStory(storyId, productData.components, productData.layoutId, petToken)
   if (typeOfStory !== 'amazon' || typeOfStory !== 'amazon-premium') {
     await petService.changeStatus(storyId, petToken, 'completed')
   }
@@ -65,7 +65,7 @@ async function createStory(asset, productData, petToken, typeOfStory) {
     'Story Preview': `https://studio.icecat.biz/assets/preview?assetId=${asset.id}&storyId=${storyId}&productId=${productId}`,
     'Live Preview': `https://studio.icecat.biz/assets/preview?assetId=${asset.id}&productId=${productId}&icecatLive=true`,
     'BrandURL': `https://studio.icecat.biz/assets?id=${asset.id}`,
-    Status:  'Imported'
+    Status: 'Imported'
   }
   processedProducts.push(reportData)
 }
@@ -82,7 +82,7 @@ async function writeResult() {
 async function start() {
   try {
     const queue = queueModule.queueSettings()
-    const petToken = await petService.loginPet()
+    const petToken = await petService.authenticate()
 
     const directoryPath = path.join(__dirname, 'input')
     const files = await fs.readdir(directoryPath)
