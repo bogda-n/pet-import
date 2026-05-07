@@ -106,9 +106,11 @@ module.exports.removeStory = async function (asset, typeOfStory, token) {
   if (storiesData.count > 0) {
     for (const s of storiesData.items) {
 
-      if (s.version === 2 && s.tag === typeOfStory.toLowerCase() && s.tag !== 'exclusive' && s.tag !== 'amazon' && s.tag !== 'amazon-premium') {
+      if (s.version === 2 && s.variant === typeOfStory.toLowerCase() && s.variant !== 'exclusive' && s.variant !== 'amazon-standard' && s.variant !== 'amazon-premium') {
 
-        await this.changeStatus(s.id, token, 'in-progress')
+        if (s.status !== 'in-progress') {
+          await this.changeStatus(s.id, token, 'in-progress')
+        }
 
         await axios({
           method: 'DELETE',
@@ -200,8 +202,8 @@ module.exports.getOrCreateAsset = async function (brandId, productData, name, la
     }))
 
     function assetPriority(asset) {
-      const hasPremium = asset.stories.some(o => o.tag === 'premium' && o.version === 2)
-      const hasStandard = asset.stories.some(o => o.tag === 'standard' && o.version === 2)
+      const hasPremium = asset.stories.some(o => o.variant === 'premium' && o.version === 2)
+      const hasStandard = asset.stories.some(o => o.variant === 'standard' && o.version === 2)
 
       switch (true) {
         case hasPremium && hasStandard: {
@@ -326,7 +328,7 @@ module.exports.createStoryV2 = async function (assetId, typeOfStory, layoutId, p
     assetId,
     layoutId,
     source: 'constructor',
-    tag: typeOfStory.toLowerCase(),
+    variant: typeOfStory.toLowerCase(),
     version: 2
     //companyId
   }
