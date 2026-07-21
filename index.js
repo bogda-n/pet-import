@@ -33,8 +33,9 @@ async function main(productName, productData, petToken) {
       SKU: productData.mpn,
       Language: productData.lang,
       Status: 'Error',
-      StatusCode: e.statusCode,
-      StatusText: e.statusText,
+      StatusCode: e.response?.status ?? e.statusCode ?? '',
+      StatusText: e.response?.statusText ?? e.statusText ?? '',
+      StatusMessage: e.response?.data?.message ?? e.response?.data?.error ?? e.message ?? '',
       typeOfStory
     }
     processedProducts.push(reportData)
@@ -70,10 +71,26 @@ async function createStory(asset, productData, petToken, typeOfStory) {
   processedProducts.push(reportData)
 }
 
+const REPORT_COLUMNS = [
+  'Brand',
+  'SKU',
+  'typeOfStory',
+  'Language',
+  'AssetUrl',
+  'Screenshot Preview',
+  'Story Preview',
+  'Live Preview',
+  'BrandURL',
+  'Status',
+  'StatusCode',
+  'StatusText',
+  'StatusMessage'
+]
+
 async function writeResult() {
   await fs.ensureDir(resultPath)
   const workBook = xlsx.utils.book_new()
-  const workSheet = xlsx.utils.json_to_sheet(processedProducts)
+  const workSheet = xlsx.utils.json_to_sheet(processedProducts, { header: REPORT_COLUMNS })
   xlsx.utils.book_append_sheet(workBook, workSheet, 'download_report')
   xlsx.writeFile(workBook, `${resultPath}/download_report.xlsx`)
   console.log('report is created')
