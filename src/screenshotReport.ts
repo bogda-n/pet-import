@@ -22,7 +22,8 @@ const limit = pLimit(4)
 
 enum StoryType {
   Standard = 'Standard',
-  Premium = 'Premium'
+  Premium = 'Premium',
+  AmazonPremium = 'AmazonPremium'
 }
 
 // Row of the new import report CSV (semicolon-separated)
@@ -77,27 +78,45 @@ const config = {
 
 const s3Storage = new S3Storage(config)
 
+function mapVariant(variant: string): StoryType {
+  switch (variant.trim().toLowerCase()) {
+    // legacy alias, kept for backward compatibility with older reports
+    case 'amazon-premium':
+      return StoryType.AmazonPremium
+    case 'premium':
+      return StoryType.Premium
+    default:
+      return StoryType.Standard
+  }
+}
+
+// premium stories render at maxWidth=1464 + 2x15px paddings (viewport 1494)
+function isWideLayout(typeOfStory: StoryType): boolean {
+  return typeOfStory === StoryType.Premium || typeOfStory === StoryType.AmazonPremium
+}
+
 // Build the old-style export link used for screenshots from the Story ID
-function buildScreenshotUrl(row: ReportRow): string {
+function buildScreenshotUrl(row: ReportRow, typeOfStory: StoryType): string {
   let origin = DEFAULT_ORIGIN
   try {
     origin = new URL(row['Story Link']).origin
   } catch {
     // keep default origin
   }
-  return `${origin}/api/v2/stories/${row['Story ID']}/export?format=html&maxWidth=1200&onlyBody=false&analytics=false`
+  const maxWidth = isWideLayout(typeOfStory) ? 1464 : 1200
+  return `${origin}/api/v2/stories/${row['Story ID']}/export?format=html&maxWidth=${maxWidth}&onlyBody=false&analytics=false`
 }
 
 function mapReportRow(row: ReportRow): ProductData {
-  const variant = String(row.Variant || '').trim().toLowerCase()
+  const typeOfStory = mapVariant(String(row.Variant || ''))
 
   return {
     Brand: String(row.Brand || ''),
     SKU: String(row.MPN || ''),
-    typeOfStory: variant === 'premium' ? StoryType.Premium : StoryType.Standard,
+    typeOfStory,
     Language: String(row.Lang || ''),
     AssetUrl: String(row['Asset Link'] || ''),
-    'Screenshot Preview': buildScreenshotUrl(row),
+    'Screenshot Preview': buildScreenshotUrl(row, typeOfStory),
     'Story Preview': String(row['Story Link'] || ''),
     Status: String(row['Import Status'] || '')
   }
@@ -112,8 +131,10 @@ async function takeScreenshot(url: string, productData: ProductData): Promise<Re
   })
   const page = await browser.newPage()
 
+  const pageWidth = isWideLayout(productData.typeOfStory) ? 1494 : 1230
+
   try {
-    await page.setViewport({ width: 1230, height: 800 })
+    await page.setViewport({ width: pageWidth, height: 800 })
     await page.goto(url, { waitUntil: 'networkidle0' })
 
     await autoScroll(page)
@@ -124,18 +145,18 @@ async function takeScreenshot(url: string, productData: ProductData): Promise<Re
     await page.waitForNetworkIdle({ idleTime: 2000 })
 
     // Adjust the container and wrapper width
-    await page.evaluate(() => {
+    await page.evaluate((width) => {
       document.querySelectorAll('.pet-hide-\\$md').forEach(el => el.remove())
 
       const container = document.querySelector('.pet-container')
       const wrapper = document.querySelector('.pet-wrapper')
       if (container) {
-        container.setAttribute('style', 'max-width: 1230px !important;')
+        container.setAttribute('style', `max-width: ${width}px !important;`)
       }
       if (wrapper) {
-        wrapper.setAttribute('style', 'max-width: 1230px !important;')
+        wrapper.setAttribute('style', `max-width: ${width}px !important;`)
       }
-    })
+    }, pageWidth)
 
     await delay(3000)
 
@@ -143,7 +164,7 @@ async function takeScreenshot(url: string, productData: ProductData): Promise<Re
     if (bodyHandle) {
       const boundingBox = await bodyHandle.boundingBox()
       if (boundingBox) {
-        await page.setViewport({ width: 1230, height: Math.ceil(boundingBox.height) })
+        await page.setViewport({ width: pageWidth, height: Math.ceil(boundingBox.height) })
       }
       await bodyHandle.dispose()
     } else {
@@ -191,6 +212,12 @@ async function takeScreenshot(url: string, productData: ProductData): Promise<Re
 
           const sliderButtonPrev = el.querySelector('.pet-slider-button-prev')
           sliderButtonPrev && sliderButtonPrev.remove()
+
+          // carousel pagination dots
+          el.querySelectorAll('.pet-swiper-pagination').forEach(p => p.remove())
+
+          // carousel navigation tabs (top bar / side tabs)
+          el.querySelectorAll('.pet-swiper-tabs, .pet-swiper-side-tabs').forEach(t => t.remove())
 
         }, element)
 
