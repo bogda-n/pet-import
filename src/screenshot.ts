@@ -65,6 +65,9 @@ const config = {
 
 const s3Storage = new S3Storage(config)
 
+// horizontal padding of .pet-row, cut off from every screenshot
+const ROW_PADDING = 16
+
 
 async function takeScreenshot(url: string, productData: ProductData): Promise<Record<string, string>> {
   const currentDate = getCurrentDate()
@@ -76,7 +79,7 @@ async function takeScreenshot(url: string, productData: ProductData): Promise<Re
   const page = await browser.newPage()
 
   try {
-    await page.setViewport({ width: 1230, height: 800 })
+    await page.setViewport({ width: 1232, height: 800 })
     // await page.goto(url, { waitUntil: 'load' })
     await page.goto(url, { waitUntil: 'networkidle0' })
 
@@ -94,10 +97,10 @@ async function takeScreenshot(url: string, productData: ProductData): Promise<Re
       const container = document.querySelector('.pet-container')
       const wrapper = document.querySelector('.pet-wrapper')
       if (container) {
-        container.setAttribute('style', 'max-width: 1230px !important;')
+        container.setAttribute('style', 'max-width: 1232px !important;')
       }
       if (wrapper) {
-        wrapper.setAttribute('style', 'max-width: 1230px !important;')
+        wrapper.setAttribute('style', 'max-width: 1232px !important;')
       }
     })
 
@@ -107,7 +110,7 @@ async function takeScreenshot(url: string, productData: ProductData): Promise<Re
     if (bodyHandle) {
       const boundingBox = await bodyHandle.boundingBox()
       if (boundingBox) {
-        await page.setViewport({ width: 1230, height: Math.ceil(boundingBox.height) })
+        await page.setViewport({ width: 1232, height: Math.ceil(boundingBox.height) })
       }
       await bodyHandle.dispose()
     } else {
@@ -171,20 +174,23 @@ async function takeScreenshot(url: string, productData: ProductData): Promise<Re
 
           await delay(2000)
 
+          const clipX = Math.ceil(boundingBox.x + ROW_PADDING)
+          const clipWidth = Math.floor(boundingBox.x + boundingBox.width - ROW_PADDING) - clipX
+
           let clip
 
           if (productData.typeOfStory === StoryType.Standard) {
             clip = {
-              x: boundingBox?.x + 15,  // remove paddings left/right 15px
+              x: clipX,
               y: index !== 1 ? boundingBox.y + computedStyle.marginBottom - 1 : boundingBox.y,
-              width: boundingBox.width - 30, // remove paddings left/right 15px
+              width: clipWidth,
               height: Math.floor(boundingBox.height + computedStyle.marginBottom) - 2
             }
           } else {
             clip = {
-              x: boundingBox?.x + 15,  // remove paddings left/right 15px
+              x: clipX,
               y: boundingBox.y + computedStyle.marginBottom + 2,
-              width: boundingBox.width - 30, // remove paddings left/right 15px
+              width: clipWidth,
               height: boundingBox.height + computedStyle.marginBottom - 2
             }
 

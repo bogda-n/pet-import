@@ -90,7 +90,10 @@ function mapVariant(variant: string): StoryType {
   }
 }
 
-// premium stories render at maxWidth=1464 + 2x15px paddings (viewport 1494)
+// horizontal padding of .pet-row, cut off from every screenshot
+const ROW_PADDING = 16
+
+// premium stories render at maxWidth=1464 + 2x16px paddings (viewport 1496)
 function isWideLayout(typeOfStory: StoryType): boolean {
   return typeOfStory === StoryType.Premium || typeOfStory === StoryType.AmazonPremium
 }
@@ -131,7 +134,7 @@ async function takeScreenshot(url: string, productData: ProductData): Promise<Re
   })
   const page = await browser.newPage()
 
-  const pageWidth = isWideLayout(productData.typeOfStory) ? 1494 : 1230
+  const pageWidth = isWideLayout(productData.typeOfStory) ? 1496 : 1232
 
   try {
     await page.setViewport({ width: pageWidth, height: 800 })
@@ -234,20 +237,23 @@ async function takeScreenshot(url: string, productData: ProductData): Promise<Re
 
           await delay(2000)
 
+          const clipX = Math.ceil(boundingBox.x + ROW_PADDING)
+          const clipWidth = Math.floor(boundingBox.x + boundingBox.width - ROW_PADDING) - clipX
+
           let clip
 
           if (productData.typeOfStory === StoryType.Standard) {
             clip = {
-              x: boundingBox?.x + 15,  // remove paddings left/right 15px
+              x: clipX,
               y: index !== 1 ? boundingBox.y + computedStyle.marginBottom - 1 : boundingBox.y,
-              width: boundingBox.width - 30, // remove paddings left/right 15px
+              width: clipWidth,
               height: Math.floor(boundingBox.height + computedStyle.marginBottom) - 2
             }
           } else {
             clip = {
-              x: boundingBox?.x + 15,  // remove paddings left/right 15px
+              x: clipX,
               y: boundingBox.y + computedStyle.marginBottom + 2,
-              width: boundingBox.width - 30, // remove paddings left/right 15px
+              width: clipWidth,
               height: boundingBox.height + computedStyle.marginBottom - 2
             }
 
